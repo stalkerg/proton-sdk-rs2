@@ -117,15 +117,19 @@ impl StorageApiClient for DefaultStorageApiClient {
                             });
                         } else {
                             last_err = Some(anyhow::anyhow!(
-                                "blob upload failed: status {}, body: {}",
+                                "blob upload failed: status {}; body length: {} bytes",
                                 status,
-                                body
+                                body.len()
                             ));
                             continue;
                         }
                     }
                     return serde_json::from_str::<ApiResponse>(&body).map_err(|e| {
-                        anyhow::anyhow!("error decoding response body: {}. Body: {}", e, body)
+                        anyhow::anyhow!(
+                            "error decoding response body: {}; body length: {} bytes",
+                            e,
+                            body.len()
+                        )
                     });
                 }
                 Err(e) => {

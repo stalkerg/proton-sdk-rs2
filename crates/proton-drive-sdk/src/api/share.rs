@@ -74,10 +74,14 @@ impl SharesApiClient for DefaultSharesApiClient {
 
         let response = request.send().await?;
         let text = response.text().await?;
-        tracing::debug!(body = %text, "get_my_files_share raw response");
+        tracing::debug!(bytes = text.len(), "received get_my_files_share response");
 
         let res: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
-            anyhow::anyhow!("Failed to decode response body: {}. Body: {}", e, text)
+            anyhow::anyhow!(
+                "Failed to decode response body: {}; body length: {} bytes",
+                e,
+                text.len()
+            )
         })?;
 
         if let Some(code) = res.get("Code").and_then(|c| c.as_u64()) {
@@ -92,9 +96,9 @@ impl SharesApiClient for DefaultSharesApiClient {
 
         let share_response: ShareResponseV2 = serde_json::from_value(res).map_err(|e| {
             anyhow::anyhow!(
-                "Failed to parse my-files share response: {}. Body: {}",
+                "Failed to parse my-files share response: {}; body length: {} bytes",
                 e,
-                text
+                text.len()
             )
         })?;
         Ok(share_response)
@@ -112,9 +116,13 @@ impl SharesApiClient for DefaultSharesApiClient {
 
         let response = request.send().await?;
         let text = response.text().await?;
-        tracing::debug!(body = %text, "get_share raw response");
+        tracing::debug!(bytes = text.len(), "received get_share response");
         let res: ShareResponse = serde_json::from_str(&text).map_err(|e| {
-            anyhow::anyhow!("Failed to decode share response: {}. Body: {}", e, text)
+            anyhow::anyhow!(
+                "Failed to decode share response: {}; body length: {} bytes",
+                e,
+                text.len()
+            )
         })?;
         Ok(res)
     }

@@ -238,7 +238,11 @@ impl ApiResponse {
     pub async fn from_response(response: reqwest::Response) -> anyhow::Result<Self> {
         let text = response.text().await?;
         let res: Self = serde_json::from_str(&text).map_err(|e| {
-            anyhow::anyhow!("Failed to decode response body: {}. Body: {}", e, text)
+            anyhow::anyhow!(
+                "Failed to decode response body: {}; body length: {} bytes",
+                e,
+                text.len()
+            )
         })?;
         Ok(res)
     }

@@ -80,7 +80,7 @@ impl UsersApiClient for DefaultUsersApiClient {
                 .error_for_status()?
         };
         let body = response.bytes().await?;
-        log::debug!("body: {:#?}", body);
+        log::debug!("received Proton user response ({} bytes)", body.len());
         Ok(serde_json::from_slice::<UserResponse>(&body)?)
     }
 }

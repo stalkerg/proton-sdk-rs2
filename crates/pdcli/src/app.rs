@@ -52,7 +52,7 @@ impl ProtonDrive {
                     let (entity_cache, secret_cache): (
                         std::sync::Arc<dyn CacheRepository>,
                         std::sync::Arc<dyn CacheRepository>,
-                    ) = crate::secure_cache::repositories().expect("failed to open pdcli caches");
+                    ) = crate::secure_cache::repositories().await?;
 
                     let mut session = ProtonAPISession::from_stored_credentials(
                         cred,

@@ -1,9 +1,6 @@
-use std::sync::Arc;
-
 use poll_promise::Promise;
 use proton_sdk_rs2::{
-    AppVersionConfiguration, cache::CacheRepository, client::ProtonClientOptions,
-    session::ProtonAPISession,
+    AppVersionConfiguration, client::ProtonClientOptions, session::ProtonAPISession,
 };
 
 use crate::credentials;
@@ -52,15 +49,13 @@ impl AuthScreen {
     fn begin_login(&mut self) {
         self.error = None;
 
-        let (entity_cache, secret_cache): (Arc<dyn CacheRepository>, Arc<dyn CacheRepository>) =
-            crate::secure_cache::repositories().expect("failed to open pdcli caches");
-
         let username = self.username.clone();
         let password = self.password.clone();
 
         tracing::info!(username = %username, "starting authentication");
 
         self.login_task = Some(Promise::spawn_async(async move {
+            let (entity_cache, secret_cache) = crate::secure_cache::repositories().await?;
             let session = ProtonAPISession::begin(
                 username,
                 &password,

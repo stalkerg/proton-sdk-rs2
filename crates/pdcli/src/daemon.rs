@@ -337,7 +337,7 @@ async fn restore_session(force_offline: bool) -> anyhow::Result<ProtonAPISession
     let (entity_cache, secret_cache): (
         std::sync::Arc<dyn CacheRepository>,
         std::sync::Arc<dyn CacheRepository>,
-    ) = crate::secure_cache::repositories()?;
+    ) = crate::secure_cache::repositories().await?;
 
     let mut session = ProtonAPISession::from_stored_credentials(
         cred,

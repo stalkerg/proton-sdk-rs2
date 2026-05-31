@@ -512,11 +512,23 @@ impl ProtonAPISession {
             true
         } else if probe_status.is_success() {
             let body_text = probe_response.text().await.unwrap_or_default();
-            log::debug!("ensure_authenticated probe body: {}", body_text);
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body_text) {
                 let code = json.get("Code").and_then(|c| c.as_u64()).unwrap_or(1000);
+                let scopes_count = json
+                    .get("Scopes")
+                    .and_then(|scopes| scopes.as_array())
+                    .map_or(0, Vec::len);
+                log::debug!(
+                    "ensure_authenticated probe response: code={}, scopes_count={}",
+                    code,
+                    scopes_count
+                );
                 code == 401
             } else {
+                log::debug!(
+                    "ensure_authenticated probe returned a non-json body ({} bytes)",
+                    body_text.len()
+                );
                 false
             }
         } else {

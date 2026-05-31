@@ -91,12 +91,11 @@ impl TrashApiClient for DefaultTrashApiClient {
         match serde_json::from_str::<VolumeTrashResponse>(&text) {
             Ok(r) => Ok(r),
             Err(e) => {
-                tracing::error!(error = %e, "get_trash failed to deserialize");
-                tracing::debug!(body = %text, "Full response");
+                tracing::error!(error = %e, bytes = text.len(), "get_trash failed to deserialize");
                 Err(anyhow::anyhow!(
-                    "Failed to decode Trash response: {}. Body: {}",
+                    "Failed to decode Trash response: {}; body length: {} bytes",
                     e,
-                    text
+                    text.len()
                 ))
             }
         }
@@ -117,8 +116,11 @@ impl TrashApiClient for DefaultTrashApiClient {
         let result = match serde_json::from_str::<AggregateApiResponse<LinkIdResponsePair>>(&text) {
             Ok(r) => r,
             Err(e) => {
-                tracing::warn!(error = %e, "trash_multiple failed to deserialize");
-                tracing::debug!(body = %text, "Full response");
+                tracing::warn!(
+                    error = %e,
+                    bytes = text.len(),
+                    "trash_multiple failed to deserialize"
+                );
                 return Err(e.into());
             }
         };

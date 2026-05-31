@@ -157,8 +157,8 @@ pub trait FilesApiClient: Send + Sync {
 }
 use proton_sdk_rs2::auth::TokenCredential;
 
-/// Parse an HTTP response as JSON, including the raw body text in the error
-/// message on failure so that Proton error pages are visible in logs.
+/// Parse an HTTP response as JSON without exposing raw response bodies in
+/// errors/logs because Drive responses may carry encrypted secret material.
 async fn parse_json_response<T: serde::de::DeserializeOwned>(
     resp: reqwest::Response,
 ) -> anyhow::Result<T> {
@@ -171,15 +171,14 @@ async fn parse_json_response<T: serde::de::DeserializeOwned>(
                 return Err(anyhow::anyhow!("API error {}: {}", api.code.0, msg));
             }
         }
-        return Err(anyhow::anyhow!("HTTP {}: {}", status, body));
+        return Err(anyhow::anyhow!(
+            "HTTP {}; body length: {} bytes",
+            status,
+            body.len()
+        ));
     }
-    serde_json::from_str::<T>(&body).map_err(|e| {
-        anyhow::anyhow!(
-            "JSON parse error: {}. Body: {}",
-            e,
-            &body[..body.len().min(512)]
-        )
-    })
+    serde_json::from_str::<T>(&body)
+        .map_err(|e| anyhow::anyhow!("JSON parse error: {}; body length: {} bytes", e, body.len()))
 }
 
 pub struct DefaultFilesApiClient {
@@ -415,21 +414,29 @@ impl FilesApiClient for DefaultFilesApiClient {
 
         if !status.is_success() {
             tracing::warn!(
-                "Thumbnail blocks API returned error: status={}, body={}",
+                "Thumbnail blocks API returned error: status={}, body length={} bytes",
                 status,
-                body_text
+                body_text.len()
             );
             anyhow::bail!(
-                "Thumbnail blocks API failed with status {}: {}",
+                "Thumbnail blocks API failed with status {}; body length: {} bytes",
                 status,
-                body_text
+                body_text.len()
             );
         }
 
-        tracing::debug!("Thumbnail blocks API response: {}", body_text);
+        tracing::debug!(
+            "Thumbnail blocks API response received ({} bytes)",
+            body_text.len()
+        );
 
-        let parsed: ThumbnailBlockListResponse = serde_json::from_str(&body_text)
-            .with_context(|| format!("Failed to parse thumbnail blocks response: {}", body_text))?;
+        let parsed: ThumbnailBlockListResponse =
+            serde_json::from_str(&body_text).with_context(|| {
+                format!(
+                    "Failed to parse thumbnail blocks response; body length: {} bytes",
+                    body_text.len()
+                )
+            })?;
 
         tracing::debug!("Parsed {} thumbnail blocks", parsed.blocks.len());
 

@@ -166,7 +166,11 @@ impl FoldersApiClient for DefaultFoldersApiClient {
 
         let text = response.text().await?;
         let res: serde_json::Value = serde_json::from_str(&text).map_err(|e| {
-            anyhow::anyhow!("Failed to decode response body: {}. Body: {}", e, text)
+            anyhow::anyhow!(
+                "Failed to decode response body: {}; body length: {} bytes",
+                e,
+                text.len()
+            )
         })?;
 
         if let Some(code) = res.get("Code").and_then(|c| c.as_u64()) {
