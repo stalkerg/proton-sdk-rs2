@@ -36,15 +36,7 @@ impl ProtonAccountClient {
             return Ok(address);
         }
 
-        let response = self.api.addresses().get_address(address_id).await?;
-
-        let user_keys = self.get_user_keys().await?;
-
-        let address = self
-            .convert_from_address_dto(response.address, &user_keys)
-            .await?;
-        self.cache.entities().set_address(&address).await?;
-        Ok(address)
+        self.fetch_and_cache_address(address_id).await
     }
 
     /// Returns all addresses for the current user, fetching and caching them if not yet loaded.
@@ -105,8 +97,8 @@ impl ProtonAccountClient {
             return Ok(keys);
         }
 
-        log::debug!("Address id: {:?}", address_id);
-        let _ = self.get_address(address_id).await?;
+        log::debug!("address keys missing from secret cache; refreshing address");
+        let _ = self.fetch_and_cache_address(address_id).await?;
 
         if let Some(keys) = self
             .cache
@@ -118,6 +110,17 @@ impl ProtonAccountClient {
         }
 
         anyhow::bail!("Could not get address keys for address {address_id}")
+    }
+
+    async fn fetch_and_cache_address(&self, address_id: &str) -> anyhow::Result<Address> {
+        let response = self.api.addresses().get_address(address_id).await?;
+        let user_keys = self.get_user_keys().await?;
+
+        let address = self
+            .convert_from_address_dto(response.address, &user_keys)
+            .await?;
+        self.cache.entities().set_address(&address).await?;
+        Ok(address)
     }
 
     /// Returns the address's primary key as identified by its `primary_key_index` field.
