@@ -4626,6 +4626,7 @@ name = "pdcli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64",
  "bytes",
  "chrono",
  "clap",
@@ -4651,6 +4652,7 @@ dependencies = [
  "poll-promise",
  "proton-drive-sdk",
  "proton-sdk-rs2",
+ "rand 0.10.1",
  "ron",
  "rusqlite",
  "serde",

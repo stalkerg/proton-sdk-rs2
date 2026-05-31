@@ -10,7 +10,10 @@ You can check it out [here](https://github.com/tirbofish/proton-sdk-rs)
 > 
 > Despite this project being open-source (and anyone can check the contents), there can be bugs and issues that may cause data loss, so always be aware of this issue. 
 > 
-> Passwords are not saved, but instead tokens are saved to the config. Even so, it is dependent on how the app (not the SDK) uses the tokens. There are helpers available for any developers wanting to store their credentials safely. 
+> Passwords are not saved. `pdcli` stores session tokens in the operating system
+> keyring when available and falls back to a restricted legacy config file with a
+> warning when no keyring provider is available. Sensitive SDK caches are stored
+> in an encrypted SQLite cache.
 
 # usage
 
@@ -22,6 +25,10 @@ anyone wanting to use the client will have to clone this repository and compile 
 The tray icon uses the freedesktop/KDE StatusNotifierItem protocol over D-Bus,
 so GTK/libappindicator is not required. Make sure your desktop environment has
 an SNI/AppIndicator host enabled; GNOME may require an AppIndicator extension.
+
+For stronger credential protection, enable an OS keyring provider. On Linux this
+usually means Secret Service via GNOME Keyring or KWallet; without it `pdcli`
+will warn and use a local fallback for credentials/cache keys.
 
 #### Arch
 ```bash

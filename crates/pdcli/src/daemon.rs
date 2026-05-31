@@ -5,7 +5,6 @@ use std::process::Stdio;
 use std::time::Duration;
 
 use anyhow::Context;
-use proton_drive_sdk::cache::sqlite::SqliteCacheRepository;
 use proton_sdk_rs2::{
     AppVersionConfiguration, cache::CacheRepository, client::ProtonClientOptions,
     session::ProtonAPISession,
@@ -335,18 +334,10 @@ async fn restore_session(force_offline: bool) -> anyhow::Result<ProtonAPISession
     let cred =
         credentials::load().ok_or_else(|| anyhow::anyhow!("no stored credentials available"))?;
 
-    let config_dir = platform_dirs::AppDirs::new(Some("pdcli"), false)
-        .ok_or_else(|| anyhow::anyhow!("failed to resolve config directory"))?
-        .config_dir;
-    std::fs::create_dir_all(&config_dir)?;
-    let cache_db_path = config_dir.join("cache.db");
-
-    let entity_cache: std::sync::Arc<dyn CacheRepository> = std::sync::Arc::new(
-        SqliteCacheRepository::open_file(&cache_db_path, Some(10_000))?,
-    );
-    let secret_cache: std::sync::Arc<dyn CacheRepository> = std::sync::Arc::new(
-        SqliteCacheRepository::open_file(&cache_db_path, Some(5_000))?,
-    );
+    let (entity_cache, secret_cache): (
+        std::sync::Arc<dyn CacheRepository>,
+        std::sync::Arc<dyn CacheRepository>,
+    ) = crate::secure_cache::repositories()?;
 
     let mut session = ProtonAPISession::from_stored_credentials(
         cred,

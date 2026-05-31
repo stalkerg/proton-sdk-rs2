@@ -1,7 +1,4 @@
-use std::sync::Arc;
-
 use poll_promise::Promise;
-use proton_drive_sdk::cache::sqlite::SqliteCacheRepository;
 use proton_sdk_rs2::{
     AppVersionConfiguration, cache::CacheRepository, client::ProtonClientOptions,
     session::ProtonAPISession,
@@ -52,20 +49,10 @@ impl ProtonDrive {
             Some(cred) => {
                 tracing::info!("found stored credentials, restoring session");
                 let task = Promise::spawn_async(async move {
-                    let config_dir = platform_dirs::AppDirs::new(Some("pdcli"), false)
-                        .expect("failed to resolve config directory")
-                        .config_dir;
-                    std::fs::create_dir_all(&config_dir).ok();
-                    let cache_db_path = config_dir.join("cache.db");
-
-                    let entity_cache: Arc<dyn CacheRepository> = Arc::new(
-                        SqliteCacheRepository::open_file(&cache_db_path, Some(10_000))
-                            .expect("failed to open entity cache"),
-                    );
-                    let secret_cache: Arc<dyn CacheRepository> = Arc::new(
-                        SqliteCacheRepository::open_file(&cache_db_path, Some(5_000))
-                            .expect("failed to open secret cache"),
-                    );
+                    let (entity_cache, secret_cache): (
+                        std::sync::Arc<dyn CacheRepository>,
+                        std::sync::Arc<dyn CacheRepository>,
+                    ) = crate::secure_cache::repositories().expect("failed to open pdcli caches");
 
                     let mut session = ProtonAPISession::from_stored_credentials(
                         cred,

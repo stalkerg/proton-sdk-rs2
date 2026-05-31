@@ -8,6 +8,8 @@ mod db;
 mod flags;
 mod fs;
 mod pdignore;
+mod secure_cache;
+mod secure_storage;
 mod thumbnail;
 mod transfer;
 mod tray;

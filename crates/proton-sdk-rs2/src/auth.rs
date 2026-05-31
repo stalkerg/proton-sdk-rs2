@@ -288,6 +288,7 @@ impl DefaultAuthenticationApiClient {
             .text()
             .await
             .unwrap_or_else(|error| format!("<failed to read response body: {error}>"));
+        let body = redact_error_body(&body);
         let body = truncate_error_body(&body);
 
         if status.is_client_error() {
@@ -315,6 +316,66 @@ fn truncate_error_body(body: &str) -> String {
     let mut truncated = body[..truncate_at].to_string();
     truncated.push_str("…<truncated>");
     truncated
+}
+
+fn redact_error_body(body: &str) -> String {
+    match serde_json::from_str::<serde_json::Value>(body) {
+        Ok(mut value) => {
+            redact_json_value(&mut value);
+            serde_json::to_string(&value)
+                .unwrap_or_else(|_| "<redacted unparsable error body>".to_string())
+        }
+        Err(_) => {
+            if may_contain_secret(body) {
+                "<redacted potentially sensitive error body>".to_string()
+            } else {
+                body.to_string()
+            }
+        }
+    }
+}
+
+fn redact_json_value(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, value) in map.iter_mut() {
+                if is_sensitive_json_key(key) {
+                    *value = serde_json::Value::String("<redacted>".to_string());
+                } else {
+                    redact_json_value(value);
+                }
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                redact_json_value(item);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn is_sensitive_json_key(key: &str) -> bool {
+    let key = key.to_ascii_lowercase();
+    key.contains("token")
+        || key.contains("secret")
+        || key.contains("key")
+        || key.contains("proof")
+        || key.contains("password")
+        || key.contains("passphrase")
+        || key == "authorization"
+        || key == "uid"
+}
+
+fn may_contain_secret(body: &str) -> bool {
+    let body = body.to_ascii_lowercase();
+    body.contains("token")
+        || body.contains("secret")
+        || body.contains("key")
+        || body.contains("proof")
+        || body.contains("password")
+        || body.contains("passphrase")
+        || body.contains("authorization")
 }
 
 #[derive(Serialize)]
